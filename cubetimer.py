@@ -97,7 +97,7 @@ class display():
     def draw(self, isbest=False):
         self.window.border("|", "|", "-", "-", "+","+","+","+")
         if isbest:
-            flag = curses.color_pair(3)
+            flag = curses.color_pair(3) | curses.A_BOLD
         else:
             flag = 0
         self.window.addch(7, 29, "o", flag)
