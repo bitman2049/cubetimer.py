@@ -47,9 +47,7 @@ class timer():
             del self.history[0]
 
 class big_digit():
-    window = None
     value = None
-    lastvalue = None
     digits = [
         " ,---. /    /\\|   / ||  /  |\\ /   / `._.'",  # 0
         " ,-,   /  |      |      |      |   ___|___",   # 1
@@ -63,20 +61,16 @@ class big_digit():
         " ,---. /     \\\\     | `---'|      /`.__.'",  # 9
     ]
     
-    def __init__(self, x, y, value=0):
+    def __init__(self, value=0):
         self.value=value
-        self.lastvalue=None
-        self.window = curses.newwin(7, 7, y, x)
-        self.draw()
 
-    def draw(self):
-        if self.lastvalue != self.value:        
-            self.window.erase()
-            self.window.addstr(0, 0, self.digits[self.value])
-        
-        self.window.redrawwin()
-        self.window.refresh()
-        self.lastvalue = self.value
+    def to_list(self):
+        # TODO redo class so lists are stored statically
+        digstr = self.digits[self.value]
+        lst = [digstr[7*i:7*i+7] for i in range(6)]
+        if len(lst[5]) < 7:
+            lst[5] = lst[5] + " "*(7 - len(lst[5]))
+        return lst
 
 class display():
     digits = []
@@ -85,11 +79,8 @@ class display():
     
     def __init__(self, x, y, value):
         self.window = curses.newwin(10, 59, y, x)
-        for i in range(3):
-            d = big_digit(5 + x + i*8, y+2, 0)
-            self.digits.append(d)
-        for i in range(3):
-            d = big_digit(31 + x + i*8, y+2, 0)
+        for i in range(6):
+            d = big_digit()
             self.digits.append(d)
         self.update(0)
         self.draw()
@@ -106,14 +97,18 @@ class display():
     def draw(self):
         self.window.border("|", "|", "-", "-", "+","+","+","+")
         self.window.addch(7, 29, "o")
+        for lineno in range(6):
+            start = False
+            for i, d in enumerate(self.digits):
+                if not start and d.value == 0 and i <= 1:
+                    continue
+                start = True
+                off = 0
+                if i > 2:
+                    off = 2
+                self.window.addstr(2 + lineno, 5 + i*8 + off, d.to_list()[lineno])
         self.window.redrawwin()   
         self.window.refresh()
-        start = False
-        for i, d in enumerate(self.digits):
-            if not start and d.value == 0 and i <= 1:
-                continue
-            start = True
-            d.draw()
 
 class history_box():
     window = None
@@ -153,30 +148,30 @@ class stats_box():
         self.window.clrtobot()
         self.window.border("|", "|", "-", "-", "+","+","+","+")
         self.window.addstr(1, 20, "Stats")
-        self.window.addstr(2, 2, "Best single [session]")
+        self.window.addstr(3, 2, "Best single [session]")
         if self.history:
             t = min(self.history)
-            self.window.addstr(3, 4, f"{t:7.3f}")
+            self.window.addstr(4, 4, f"{t:7.3f}")
         else:
-            self.window.addstr(3, 4, nonestr)
-        self.window.addstr(5, 2, "Best single [last 12]")
+            self.window.addstr(4, 4, nonestr)
+        self.window.addstr(6, 2, "Best single [last 12]")
         if self.history:    
             t = min(self.history[:12])
-            self.window.addstr(6, 4, f"{t:7.3f}")
+            self.window.addstr(7, 4, f"{t:7.3f}")
         else:
-            self.window.addstr(6, 4, nonestr)
-        self.window.addstr(2, 28, "Avg [3 of 5]")
+            self.window.addstr(7, 4, nonestr)
+        self.window.addstr(3, 28, "Avg [3 of 5]")
         if len(self.history) >= 5:
             t = avg(self.history, 5, True)
-            self.window.addstr(3, 30, f"{t:7.3f}")
+            self.window.addstr(4, 30, f"{t:7.3f}")
         else:
-            self.window.addstr(3, 30, nonestr)
-        self.window.addstr(5, 28, "Avg [10 of 12]")
+            self.window.addstr(4, 30, nonestr)
+        self.window.addstr(6, 28, "Avg [10 of 12]")
         if len(self.history) >= 12:
             t = avg(self.history, 12, True)
-            self.window.addstr(6, 30, f"{t:7.3f}")
+            self.window.addstr(7, 30, f"{t:7.3f}")
         else:
-            self.window.addstr(6, 30, nonestr)
+            self.window.addstr(7, 30, nonestr)
         self.window.redrawwin()
         self.window.refresh()
 
