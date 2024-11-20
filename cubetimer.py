@@ -94,9 +94,13 @@ class display():
             denom //= 10
         return
 
-    def draw(self):
+    def draw(self, isbest=False):
         self.window.border("|", "|", "-", "-", "+","+","+","+")
-        self.window.addch(7, 29, "o")
+        if isbest:
+            flag = curses.color_pair(3)
+        else:
+            flag = 0
+        self.window.addch(7, 29, "o", flag)
         for lineno in range(6):
             start = False
             for i, d in enumerate(self.digits):
@@ -108,7 +112,7 @@ class display():
                 off = 0
                 if i > 2:
                     off = 2
-                self.window.addstr(2 + lineno, 5 + i*8 + off, string)
+                self.window.addstr(2 + lineno, 5 + i*8 + off, string, flag)
         self.window.redrawwin()   
         self.window.refresh()
 
@@ -243,7 +247,7 @@ class application():
     def draw(self):
         if not self.timer.timing or self.tick % self.frameskip == 0:
             self.window.refresh()
-            self.display.draw()
+            self.display.draw(not self.timer.timing and self.timer.history and self.timer.history[0]==min(self.timer.history))
             self.history_box.draw()
             self.stats_box.draw()
 
