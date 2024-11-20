@@ -100,13 +100,15 @@ class display():
         for lineno in range(6):
             start = False
             for i, d in enumerate(self.digits):
+                string = d.to_list()[lineno]
                 if not start and d.value == 0 and i <= 1:
-                    continue
-                start = True
+                    string = "       "
+                else:
+                    start = True
                 off = 0
                 if i > 2:
                     off = 2
-                self.window.addstr(2 + lineno, 5 + i*8 + off, d.to_list()[lineno])
+                self.window.addstr(2 + lineno, 5 + i*8 + off, string)
         self.window.redrawwin()   
         self.window.refresh()
 
