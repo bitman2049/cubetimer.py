@@ -43,7 +43,7 @@ class timer():
         self.history.insert(0, self.curr)
 
     def discard_last(self):
-        if len(self.history) > 0:
+        if self.history:
             del self.history[0]
 
 class big_digit():
@@ -87,11 +87,9 @@ class display():
 
     def update(self, value):
         self.value = value
-        tint = int(1000 * self.value + 0.5)
-        denom = 10 ** (len(self.digits) - 1)
-        for d in self.digits:
-            d.value = (tint // denom) % 10
-            denom //= 10
+        vint = int(1000 * self.value + 0.5)
+        for d, n in zip(self.digits, f"{vint:06d}"):
+            d.value = int(n)
         return
 
     def draw(self, isbest=False):
@@ -154,18 +152,18 @@ class stats_box():
         self.window.clrtobot()
         self.window.border("|", "|", "-", "-", "+","+","+","+")
         self.window.addstr(1, 20, "Stats")
-        self.window.addstr(3, 2, "Best single [session]")
+        self.window.addstr(3, 3, "Best [session]")
         if self.history:
             t = min(self.history)
-            self.window.addstr(4, 4, f"{t:7.3f}")
+            self.window.addstr(4, 5, f"{t:7.3f}")
         else:
-            self.window.addstr(4, 4, nonestr)
-        self.window.addstr(6, 2, "Best single [last 12]")
+            self.window.addstr(4, 5, nonestr)
+        self.window.addstr(6, 3, "Best [last 12]")
         if self.history:    
             t = min(self.history[:12])
-            self.window.addstr(7, 4, f"{t:7.3f}")
+            self.window.addstr(7, 5, f"{t:7.3f}")
         else:
-            self.window.addstr(7, 4, nonestr)
+            self.window.addstr(7, 5, nonestr)
         self.window.addstr(3, 28, "Avg [3 of 5]")
         if len(self.history) >= 5:
             t = avg(self.history, 5, True)
@@ -239,7 +237,10 @@ class application():
                 self.timer.stop_time()
                 self.window.nodelay(False)
             self.timer.discard_last()
-            self.timer.curr = 0
+            if self.timer.history:
+                self.timer.curr = self.timer.history[0]
+            else:
+                self.timer.curr = 0
         self.timer.update()
         self.display.update(self.timer.curr)
         self.tick += 1
