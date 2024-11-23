@@ -2,13 +2,17 @@
 
 import curses
 import time
+import json
+import os
 
 class timer():
     def __init__(self):
         self.curr = 0
         self.start = 0
         self.timing = False
-        self.history = []
+        self.load()
+        if self.history:
+            self.curr = self.history[0]
 
     def update(self):
         if not self.timing:
@@ -27,7 +31,22 @@ class timer():
     def discard_last(self):
         if self.history:
             del self.history[0]
+        if self.history:
+            self.curr = self.history[0]
+        else:
+            self.curr = 0
 
+    def save(self):
+        with open("hist", "w") as f:
+            json.dump(self.history, f)
+
+    def load(self):
+        if os.path.isfile("hist"):
+            with open("hist", "r") as f:
+                self.history = json.load(f)
+        else:
+            self.history = []
+            
 class display():
     asciinums = [
         [" ,---. ","/    /\\","|   / |","|  /  |","\\ /   /"," `._.' "],
@@ -42,19 +61,20 @@ class display():
         [" ,---. ","/     \\","\\     |"," `---'|","      /","`.__.' "],
     ]
     
-    def __init__(self, x, y, value):
+    def __init__(self, x, y, timer):
         self.window = curses.newwin(10, 59, y, x)
-        self.value = value
+        self.timer = timer
         self.draw()
 
     def draw(self, isbest=False):
         self.window.border("|", "|", "-", "-", "+", "+", "+", "+")
+        self.window.addch(9,46,"+")
         if isbest:
             flag = curses.color_pair(3) | curses.A_BOLD
         else:
             flag = 0
         self.window.addch(7, 29, "o", flag)
-        vint = int(1000 * self.value + 0.5)
+        vint = int(1000 * self.timer.curr + 0.5)
         for lineno in range(6):
             for i, n in enumerate(f"{vint:6d}"):
                 if n == ' ':
@@ -103,7 +123,7 @@ class stats_box():
         self.window.clrtobot()
         self.window.border("|", "|", "-", "-", "+", "+", "+", "+")
         self.window.addstr(1, 20, "Stats")
-        self.window.addstr(3, 3, "Best [session]")
+        self.window.addstr(3, 3, "Best [all time]")
         if self.history:
             t = min(self.history)
             self.window.addstr(4, 5, f"{t:7.3f}")
@@ -154,11 +174,12 @@ class application():
         self.timer = timer()
         self.history_box = history_box(45, 9, self.timer.history)
         self.stats_box = stats_box(0, 9, self.timer.history)
-        self.display = display(0, 0, 0)
+        self.display = display(0, 0, self.timer)
         self.tick = 0
         self.draw()
     
     def __del__(self):
+        self.timer.save()
         curses.endwin()
 
     def run(self):
@@ -169,14 +190,9 @@ class application():
 
     def update(self):
         ch = self.window.getch()
-        if ch == 27:
-            self.window.nodelay(True)
-            ch2 = self.window.getch()
-            if ch2 == -1:
-                self.ex = True
-            elif not self.timer.timing:
-                self.window.nodelay(False)
-        elif ch == 32:
+        if ch == ord('q'):
+            self.ex = True
+        elif ch == ord(' '):
             if self.timer.timing:
                 self.timer.stop_time()
                 self.window.nodelay(False)
@@ -188,12 +204,7 @@ class application():
                 self.timer.stop_time()
                 self.window.nodelay(False)
             self.timer.discard_last()
-            if self.timer.history:
-                self.timer.curr = self.timer.history[0]
-            else:
-                self.timer.curr = 0
         self.timer.update()
-        self.display.value = self.timer.curr
         self.tick += 1
                 
     def draw(self):
